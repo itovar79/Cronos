@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <title>Tiempo muerto CCN</title>
+    <meta name="title" content="Cronómetro CCN">
+    <meta name="description" content="Cronómetro CCN en JavaScript">
+    <meta name="keywords" content="código, cronómetro, javascript, CCN">
+
+    <script>
+        var cronometro = {
+            inicio: 0,
+            intervaloSonido: 38000, // Intervalo de 38 segundos
+            ciclos: 0,
+            tiempoTotal: 0,
+            ultimoSonido: 0, // Tiempo del último sonido
+            sonido: new Audio('https://www.soundjay.com/buttons/sounds/button-15.mp3'),
+            parpadeoIntervalo: null,
+            originalTitle: document.title,
+            animacionId: null,
+
+            setIntervalo: function() {
+                var segundos = parseInt(document.getElementById("intervaloSegundos").value);
+                if (!isNaN(segundos) && segundos > 0) {
+                    this.intervaloSonido = segundos * 1000;
+                    alert("Intervalo de reinicio configurado a " + segundos + " segundos.");
+                } else {
+                    alert("Por favor, ingrese un valor válido de segundos.");
+                }
+            },
+
+            empezarDetener: function(elemento) {
+                if (this.animacionId === null) {
+                    elemento.value = "Detener";
+                    this.inicio = new Date().getTime();
+                    this.ultimoSonido = this.inicio;
+                    this.funcionando();
+                } else {
+                    elemento.value = "Empezar";
+                    cancelAnimationFrame(this.animacionId);
+                    this.animacionId = null;
+                    this.ciclos = 0;
+                    this.tiempoTotal = 0;
+                    this.resetDisplay();
+                }
+            },
+
+            funcionando: function() {
+                this.animacionId = requestAnimationFrame(() => this.funcionando());
+
+                var actual = new Date().getTime();
+                var diff = actual - this.inicio;
+
+                // Formato del tiempo
+                var horas = Math.floor(diff / (1000 * 60 * 60));
+                var minutos = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                var segundos = Math.floor((diff % (1000 * 60)) / 1000);
+                var milisegundos = diff % 1000;
+
+                document.getElementById('crono').innerHTML = this.formatTime(horas) + ":" + this.LeadingZero(minutos) + ":" + this.LeadingZero(segundos) + ":" + this.LeadingZeroMillisegundos(milisegundos);
+
+                // Parpadeo del título antes del sonido
+                if (actual - this.ultimoSonido >= this.intervaloSonido - 3000 && this.parpadeoIntervalo === null) {
+                    this.parpadearIcono();
+                }
+
+                // Reproduce el sonido si ha pasado el intervalo configurado
+                if (actual - this.ultimoSonido >= this.intervaloSonido) {
+                    this.sonido.currentTime = 0;
+                    this.sonido.play();
+                    this.ultimoSonido = actual;
+                    this.ciclos++;
+                    this.tiempoTotal += this.intervaloSonido;
+                    this.updateDisplay();
+                    this.detenerParpadeo();
+                }
+            },
+
+            parpadearIcono: function() {
+                this.parpadeoIntervalo = setInterval(() => {
+                    document.title = document.title === "¡Atención!" ? this.originalTitle : "¡Atención!";
+                }, 500);
+            },
+
+            detenerParpadeo: function() {
+                clearInterval(this.parpadeoIntervalo);
+                this.parpadeoIntervalo = null;
+                document.title = this.originalTitle;
+            },
+
+            resetDisplay: function() {
+                document.getElementById('crono').innerHTML = "00:00:00:000";
+                document.getElementById('ciclos').innerHTML = "Ciclos: 0";
+                document.getElementById('tiempoTotal').innerHTML = "Tiempo total: 00:00";
+            },
+
+            updateDisplay: function() {
+                var minutosAcumulados = Math.floor(this.tiempoTotal / 60000);
+                var segundosAcumulados = Math.floor((this.tiempoTotal % 60000) / 1000);
+                document.getElementById('tiempoTotal').innerHTML = "Tiempo total: " + this.LeadingZero(minutosAcumulados) + ":" + this.LeadingZero(segundosAcumulados);
+                document.getElementById('ciclos').innerHTML = "Ciclos: " + this.ciclos;
+            },
+
+            LeadingZero: function(Time) {
+                return (Time < 10) ? "0" + Time : Time;
+            },
+
+            LeadingZeroMillisegundos: function(Time) {
+                return (Time < 10) ? "00" + Time : (Time < 100) ? "0" + Time : Time;
+            },
+
+            formatTime: function(Time) {
+                return this.LeadingZero(Time);
+            }
+        };
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        #ventana {
+            width: 250px;
+            background-color: #f9f9f9;
+            border: 2px solid #ccc;
+            position: absolute;
+            top: 10%;
+            left: 50%;
+            transform: translate(-50%, -10%);
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+        }
+
+        #titulo {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            border-radius: 5px;
+        }
+
+        .crono_wrapper {
+            text-align: center;
+            width: 200px;
+            padding: 10px;
+        }
+
+        input[type="button"] {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        #intervaloSegundos {
+            width: 60px;
+            text-align: center;
+            margin: 0 auto;
+        }
+
+        #tiempoTotal, #ciclos {
+            margin-top: 10px;
+            font-size: 16px;
+        }
+
+        label {
+            display: block;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        #footer {
+            text-align: center;
+            font-size: 12px;
+            margin-top: 20px;
+            color: #555;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="ventana">
+        <div id="titulo">Cronómetro</div>
+        <div class="crono_wrapper">
+            <h2 id="crono">00:00:00:000</h2>
+            <input type="button" value="Empezar" onclick="cronometro.empezarDetener(this);" aria-label="Iniciar o detener cronómetro">
+            
+            <label for="intervaloSegundos">Intervalo (segundos):</label>
+            <input type="number" id="intervaloSegundos" min="1" max="9999" value="38">
+            <input type="button" value="Configurar intervalo" onclick="cronometro.setIntervalo();">
+            
+            <div id="ciclos">Ciclos: 0</div>
+            <div id="tiempoTotal">Tiempo total: 00:00</div>
+
+            <!-- Información de pie de página dentro del contenedor -->
+            <div id="footer">
+                CCN Home Office / ITOVAR / 203275 / tovar79@gmail.com
+            </div>
+        </div>
+    </div>
+</body>
+</html>
